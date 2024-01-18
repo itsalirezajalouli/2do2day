@@ -19,11 +19,7 @@ Tabulated Display: Enjoy clear and structured visualization of tasks using the t
 #### Dependencies:
 
 curses: For building the interactive menu and prompts within the terminal.
-
 tabulate: To display tasks in a well-structured table format.
-
 csv: For reading from and writing to CSV files, which store task data.
-
 datetime: To handle date and time, vital for segregating task lists by day.
-
 os: To check for the existence of files based on the current date.
