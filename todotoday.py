@@ -23,7 +23,7 @@ def print_menu(stdscr, selected_idx, menu_options):
 
     stdscr.addstr(title)
 
-    stdscr.addstr('\n\n[j]up | [k]down | [d]elete | [b]ack')
+    stdscr.addstr('\n[j]up | [k]down | [d]elete | [b]ack')
 
     for idx, option in enumerate(menu_options):
         x = w//2 - len(option)//2
@@ -138,8 +138,6 @@ def Loader(stdscr, date_str, current_selected):
         #   Gets user input
         key = stdscr.getch()
         
-        current_selected = 0
-
         if (key == curses.KEY_UP or key == ord('k')) and current_selected > 0:
             current_selected -= 1
         elif (key == curses.KEY_DOWN or key == ord('j')) and current_selected < len(dirList) - 1:
