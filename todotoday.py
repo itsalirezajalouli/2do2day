@@ -1,16 +1,27 @@
+#   Todo:
+#   Load Option
+
+import sys
 import curses
 from tabulate import tabulate
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
+import pyfiglet
+from termcolor import colored
+from colorama import init
 
-#   Here are the menu options as a list:
-menu_options = ["View Today's Todolist", 'Add a Task', 'Edit a Task', 'Delete a Task', 'Mark Task as Complete', 'Exit']
+menu_options = ['New File', 'Load File', 'Exit']
 
-#   Here we define the function that displays the menu:
-def print_menu(stdscr, selected_idx):
+def print_menu(stdscr, selected_idx, menu_options):
     stdscr.clear() # Clears the screen
     h, w = stdscr.getmaxyx() # Get the height and width of the screen
+    
+    figlet = pyfiglet.Figlet(font = 'slant')
+    
+    title = figlet.renderText('2do2day')
+
+    stdscr.addstr(title)
 
     for idx, option in enumerate(menu_options):
         x = w//2 - len(option)//2
@@ -22,24 +33,24 @@ def print_menu(stdscr, selected_idx):
     stdscr.refresh()
 
 def main(stdscr):
-    #   Here we set up color for selected option
+    init()
+    date_str = None
+    
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
-    #   Here we make program to start with the first option selected
+
     current_selected = 0
-    #   Here we hide the cursor
     curses.curs_set(0)
-    #   Prints the current menu
-    print_menu(stdscr, current_selected)
+    print_menu(stdscr, current_selected, menu_options)
 
     while True:
         #   Gets user input
         key = stdscr.getch()
 
-        if key == curses.KEY_UP and current_selected > 0:
+        if (key == curses.KEY_UP or key == ord('k')) and current_selected > 0:
             current_selected -= 1
-        elif key == curses.KEY_DOWN and current_selected < len(menu_options) - 1:
+        elif (key == curses.KEY_DOWN or key == ord('j')) and current_selected < len(menu_options) - 1:
             current_selected += 1
-        elif key == curses.KEY_ENTER or key in [10, 13]:
+        elif (key == curses.KEY_ENTER or key == ord(' ')) or key in [10, 13]:
             stdscr.addstr(0,0, f"You selected '{menu_options[current_selected]}' Press ANY keys to continue ")
             stdscr.refresh()
             stdscr.getch()
@@ -47,23 +58,14 @@ def main(stdscr):
             #   Here we check user's choice and go to related functions to the command
 
             if menu_options[current_selected] == 'Exit':
-                break
-            elif menu_options[current_selected] == 'Add a Task':
+                sys.exit()
+            elif menu_options[current_selected] == 'New File':
                 stdscr.clear()
-                create(stdscr)
-            elif menu_options[current_selected] == "View Today's Todolist":
+                Create(stdscr, None, False)
+            elif menu_options[current_selected] == 'Load File':
                 stdscr.clear()
-                view(stdscr)
-            elif menu_options[current_selected] == 'Delete a Task':
-                stdscr.clear()
-                delete(stdscr)
-            elif menu_options[current_selected] == 'Edit a Task':
-                stdscr.clear()
-                edit(stdscr)
-            elif menu_options[current_selected] == 'Mark Task as Complete':
-                stdscr.clear()
-                mark(stdscr)
-        print_menu(stdscr, current_selected)
+                Loader(stdscr, date_str, 0)
+        print_menu(stdscr, current_selected, menu_options)
 
 def get_input(win, prompt_string):
     curses.echo()
@@ -86,9 +88,16 @@ def get_task_number(filename):
         return 1
     return max(task_numbers) + 1
 
-def create(stdscr):
-    date_str = datetime.now().strftime("%Y-%m-%d")  # Get the current date as a string
-    filename = f'todolist_{date_str}.csv'  # Create a filename with the current date
+def Create(stdscr, date_str, fromLoad):
+    stdscr.clear() # Clears the screen
+    if date_str == None:
+        date_str = get_input(stdscr, 'File Name: ')
+    else:
+        pass
+    if fromLoad:
+        filename = f'{date_str}'
+    else:
+        filename = f'{date_str}.csv'
     tasks = []
     status = 'Not Started'
     i = 1
@@ -105,40 +114,90 @@ def create(stdscr):
 
     # Reload and show tasks after creating the new task
     stdscr.clear()
-    with open(filename, mode='r') as file:
-        reader = csv.DictReader(file)
-        tasks = [row for row in reader]
-    stdscr.addstr(tabulate(tasks, headers='keys', tablefmt='rounded_outline'))  # Displaying using tabulate
-    stdscr.refresh()
-    stdscr.getch()
+    view(stdscr, filename)
+#        reader = csv.DictReader(file)
+#        tasks = [row for row in reader]
+#    stdscr.addstr(tabulate(tasks, headers='keys', tablefmt='rounded_outline'))  # Displaying using tabulate
+#    stdscr.refresh()
+#    stdscr.getch()
 
-def view(stdscr):
-    stdscr.clear()
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f'todolist_{date_str}.csv'
+def Loader(stdscr, date_str, current_selected):
+
+    dir = os.listdir('./')
+    dirList = []
+    for file in dir:
+        if str(file).endswith('.csv'):
+            dirList.append(file)
+
+    print_menu(stdscr, current_selected, dirList)
+
+    while True:
+        #   Gets user input
+        key = stdscr.getch()
+
+        if (key == curses.KEY_UP or key == ord('k')) and current_selected > 0:
+            current_selected -= 1
+        elif (key == curses.KEY_DOWN or key == ord('j')) and current_selected < len(dirList) - 1:
+            current_selected += 1
+        elif key == ord('b'):
+            main(stdscr)
+        elif key == ord('d'):
+            stdscr.clear()
+            dirList.remove(dirList[current_selected])
+            os.remove('./' + dirList[current_selected])
+            stdscr.addstr(0, 0, f'{dirList[current_selected]} Got Deleted.')
+        elif (key == curses.KEY_ENTER or key == ord(' ')) or key in [10, 13]:
+            stdscr.addstr(0,0, f"You selected '{dirList[current_selected]}' Press ANY keys to continue ")
+            stdscr.refresh()
+            stdscr.getch()
+            date_str = str(dirList[current_selected])
+            view(stdscr, date_str)
+        print_menu(stdscr, current_selected, dirList)
+
+
+def view(stdscr, date_str):
+
+    stdscr.clear() # Clears the screen
+    filename = date_str
     if not os.path.exists(filename):
-        stdscr.addstr(0,0,f"You haven't planned for today yet")
-        stdscr.refresh()
-        stdscr.getch()
-        main(stdscr)
+        Create(stdscr, date_str, False)
     with open(filename, mode='r') as file:
         reader = csv.DictReader(file)
         tasks = [row for row in reader]
-    stdscr.addstr(tabulate(tasks, headers='keys', tablefmt='rounded_outline'))  # Displaying using tabulate
+    stdscr.addstr('\n\n' + tabulate(tasks, headers='keys', tablefmt='rounded_outline')
+        + '\n\n [i]nsert | [e]dit | [d]elete | [m]ark completed | [b]ack')  # Displaying using tabulate
     stdscr.refresh()
     stdscr.getch()
 
-def delete(stdscr):
+    while True:
+        c = stdscr.getch()
+        if c == ord('i'):
+            stdscr.clear()
+            Create(stdscr, date_str, True)
+        if c == ord('e'):
+            stdscr.clear()
+            edit(stdscr, date_str)
+        if c == ord('d'):
+            stdscr.clear()
+            delete(stdscr, date_str)
+        if c == ord('m'):
+            stdscr.clear()
+            mark(stdscr, date_str)
+        if c == ord('b'):
+            stdscr.clear()
+            main(stdscr)
+
+def delete(stdscr, date_str):
     stdscr.clear()
-    task_to_remove = get_input(stdscr, 'Task to Remove: ')
+    task_to_remove = get_input(stdscr, 'Number of Task to Remove: ')
     new_tasks = []
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f'todolist_{date_str}.csv'
+
+    filename = f'{date_str}'
 
     with open(filename, mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['Task'] != task_to_remove:
+            if row['Number'] != task_to_remove:
                 new_tasks.append(row)
 
     for idx, task in enumerate(new_tasks, start=1):
@@ -150,18 +209,22 @@ def delete(stdscr):
         writer.writeheader()
         writer.writerows(new_tasks)
 
-def edit(stdscr):
     stdscr.clear()
-    task_to_edit = get_input(stdscr, 'Task to Edit: ')
+    view(stdscr, date_str)
+
+
+def edit(stdscr, date_str):
+    stdscr.clear()
+    task_to_edit = get_input(stdscr, 'Number of Task to Edit: ')
     edit_to_what = get_input(stdscr, 'Change it to: ')
     new_tasks = []
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f'todolist_{date_str}.csv'
+
+    filename = f'{date_str}'
 
     with open(filename, mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['Task'] == task_to_edit:
+            if row['Number'] == task_to_edit:
                 row['Task'] = edit_to_what
             new_tasks.append(row)
 
@@ -174,18 +237,19 @@ def edit(stdscr):
         writer.writeheader()
         writer.writerows(new_tasks)
 
-def mark(stdscr):
-
     stdscr.clear()
-    task_to_mark = get_input(stdscr, 'Task You Completed: ')
+    view(stdscr, date_str)
+
+def mark(stdscr, date_str):
+    filename = f'{date_str}'
+    stdscr.clear()
+    task_to_mark = get_input(stdscr, 'Number of Task You Completed: ')
     new_tasks = []
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f'todolist_{date_str}.csv'
 
     with open(filename, mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['Task'] == task_to_mark:
+            if row['Number'] == task_to_mark:
                 row['Status'] = 'Completed'
             new_tasks.append(row)
 
@@ -197,6 +261,9 @@ def mark(stdscr):
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(new_tasks)
+
+    stdscr.clear()
+    view(stdscr, date_str)
 
 if __name__ == "__main__":
     curses.wrapper(main)
