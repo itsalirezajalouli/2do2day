@@ -1,3 +1,2 @@
-only pip installable library used:
-    - tabulate
-    - curses
+tabulate
+curses
