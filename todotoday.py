@@ -42,6 +42,7 @@ def main(stdscr):
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)  # Selected item
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)  # Title color
     curses.init_pair(3, curses.COLOR_CYAN, curses.COLOR_BLACK)  # Unselected item
+    curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_BLACK)  # Instructions 
 
     current_selected = 0
     curses.curs_set(0)
@@ -101,7 +102,9 @@ def Create(stdscr, date_str, fromLoad):
         if not isdir('./csvs/'):
             os.mkdir('./csvs/')
         filename = f'{date_str}.csv'
-    filename = os.path.join('./csvs/', filename)
+        filename = os.path.join('./csvs/', filename)
+
+    # filename = date_str
     tasks = []
     status = 'Not Started'
     i = 1
@@ -175,8 +178,8 @@ def view(stdscr, date_str):
         with open(filename, mode='r') as file:
             reader = csv.DictReader(file)
             tasks = [row for row in reader]
-        stdscr.addstr('\n\n' + tabulate(tasks, headers='keys', tablefmt='rounded_outline')
-            + '\n\n [i]nsert | [e]dit | [t]ime edit | [d]elete | [m]ark completed | [b]ack')
+        stdscr.addstr('\n\n' + tabulate(tasks, headers='keys', tablefmt='rounded_outline'))
+        stdscr.addstr('\n\n [i]nsert | [e]dit | [t]ime edit | [d]elete \n\n [c]lear | [m]ark completed | [s]wap | [b]ack', curses.color_pair(4))
     except IOError as e:
         stdscr.clear()
         stdscr.addstr(0, 0, f"Error: {str(e)}")
@@ -203,6 +206,12 @@ def view(stdscr, date_str):
         if c == ord('b'):
             stdscr.clear()
             main(stdscr)
+        if c == ord('s'):
+            stdscr.clear()
+            swap(stdscr, date_str)
+        if c == ord('c'):
+            stdscr.clear()
+            clear(stdscr, date_str)
 
 def delete(stdscr, date_str):
     stdscr.clear()
@@ -227,6 +236,53 @@ def delete(stdscr, date_str):
 
     for idx, task in enumerate(new_tasks):
         task['Number'] = idx + 1  # Re-number tasks
+
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=['Number', 'Task', 'Time', 'Status'])
+        writer.writeheader()
+        writer.writerows(new_tasks)
+
+    view(stdscr, date_str)
+
+def swap(stdscr, date_str):
+    stdscr.clear()
+    task_number = get_input(stdscr, 'Task1: ')
+    other_task_number = get_input(stdscr, 'Task2: ')
+    new_tasks = []
+
+    # filename =os.path.join('./csvs/', date_str)
+    filename = date_str
+
+    try:
+        with open(filename, mode='r') as file:
+            reader = csv.DictReader(file)
+            other = None
+            temp = None
+
+            for row in reader:
+                if row['Number'] == other_task_number:
+                    other = row
+                if row['Number'] == task_number:
+                    temp = row
+                new_tasks.append(row)
+
+            for i, row in enumerate(new_tasks):
+                task_number = int(task_number)
+                other_task_number = int(other_task_number)
+                if i == task_number - 1:
+                    new_tasks[i] = other
+                    new_tasks[i]['Number'] = i + 1
+                elif i == other_task_number - 1:
+                    new_tasks[i] = temp 
+                    new_tasks[i]['Number'] = i + 1
+
+
+    except IOError as e:
+        stdscr.clear()
+        stdscr.addstr(0, 0, f"Error: {str(e)}")
+        stdscr.refresh()
+        stdscr.getch()
+        return
 
     with open(filename, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=['Number', 'Task', 'Time', 'Status'])
@@ -321,6 +377,23 @@ def mark(stdscr, date_str):
         writer = csv.DictWriter(file, fieldnames=['Number', 'Task', 'Time', 'Status'])
         writer.writeheader()
         writer.writerows(new_tasks)
+
+    view(stdscr, date_str)
+
+
+def clear(stdscr, date_str):
+    stdscr.clear()
+    answer = get_input(stdscr, 'Clear all: Are You sure? [y/n] ')
+    new_tasks = []
+
+    # filename =os.path.join('./csvs/', date_str)
+    filename = date_str
+
+    if answer == 'y':
+        with open(filename, mode='w', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=['Number', 'Task', 'Time', 'Status'])
+            writer.writeheader()
+            writer.writerows(new_tasks)
 
     view(stdscr, date_str)
 
