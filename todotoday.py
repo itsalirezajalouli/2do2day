@@ -1,3 +1,4 @@
+import time
 from os.path import isdir, isfile
 import sys
 import curses
@@ -18,11 +19,15 @@ def print_menu(stdscr, selected_idx, menu_options):
     figlet = pyfiglet.Figlet(font='slant')
     
     title = figlet.renderText('2do2day')
+    timestamp = time.time()
+    timestamp = datetime.fromtimestamp(timestamp)
+    today = timestamp.strftime('%d %B, %Y')
     
     # Use a color pair for the title
     stdscr.addstr(title, curses.color_pair(2))  
+    stdscr.addstr(today, curses.color_pair(1))  
 
-    stdscr.addstr('\n[j]up | [k]down | [d]elete | [b]ack')
+    stdscr.addstr('\n[j]up | [k]down | [d]elete | [b]ack', curses.color_pair(1))
 
     for idx, option in enumerate(menu_options):
         x = w // 2 - len(option) // 2
@@ -173,6 +178,12 @@ def Loader(stdscr, date_str, current_selected):
 
 def view(stdscr, date_str):
     stdscr.clear()
+    timestamp = time.time()
+    timestamp = datetime.fromtimestamp(timestamp)
+    today = timestamp.strftime('%d %B, %Y')
+
+    # Use a color pair for the title
+    stdscr.addstr(today, curses.color_pair(1))  
     filename = date_str
     try:
         with open(filename, mode='r') as file:
